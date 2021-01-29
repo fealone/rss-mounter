@@ -10,7 +10,7 @@ class RSS(object):
     def __init__(self, rss_config_path: str) -> None:
         self.rss_config_path = rss_config_path
         self.rss_config = yaml.load(open(self.rss_config_path), Loader=yaml.BaseLoader)
-        self.rss_feeds: Dict[str, feedparser.FeedParserDict] = {}
+        self.rss_feeds: Dict[str, Dict[str, feedparser.FeedParserDict]] = {}
         self.load_feeds()
 
     def reload(self) -> None:
@@ -19,7 +19,7 @@ class RSS(object):
 
     def load_feeds(self) -> None:
         self.rss_feeds = {
-                root_name: self.get_feeds(url)
+                root_name: {feed.title: feed for feed in self.get_feeds(url)}
                 for root_name, url in self.rss_config.items()}
 
     def get_feeds(self, url: str) -> List[feedparser.FeedParserDict]:
@@ -35,7 +35,7 @@ class RSS(object):
         return list(self.rss_config.keys())
 
     def get_titles(self, root_name: str) -> List[str]:
-        return [feed.title for feed in self.rss_feeds[root_name]]
+        return [title for title in self.rss_feeds[root_name].keys()]
 
 
 if __name__ == "__main__":
