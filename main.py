@@ -5,7 +5,7 @@ import os
 import sys
 import threading
 
-from fuse.fuse import ( # NOQA
+from libs.fuse import ( # NOQA
         FUSE,
         FuseOSError,
         Operations,
