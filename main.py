@@ -4,6 +4,8 @@ import logging
 import os
 import sys
 import threading
+import time
+from typing import Any, Dict, List, Optional
 
 from libs.fuse import ( # NOQA
         FUSE,
@@ -19,17 +21,25 @@ CONFIG_NAME = "rss_config.yaml"
 # class RSSOperations(LoggingMixIn, Operations):
 class RSSOperations(Operations):
 
-    def __init__(self, root):
+    def __init__(self, root: str):
         self.root = os.path.realpath(root)
         self.rwlock = threading.Lock()
         self.rss = RSS(CONFIG_NAME)
         self.rss_root = self.rss.get_root()
+        self.reload_thread = threading.Thread(target=self.scheduled_reload)
+        self.reload_thread.setDaemon(True)
+        self.reload_thread.start()
 
-    def __call__(self, op, path, *args):
+    def scheduled_reload(self) -> None:
+        while 1:
+            time.sleep(1800)
+            self.rss.reload()
+
+    def __call__(self, op: Any, path: Any, *args: Any) -> Any:
         return super(RSSOperations, self).__call__(
                 op, self.root + path, *args)
 
-    def access(self, path, mode):
+    def access(self, path: str, mode: int) -> None:
         base = path.split(self.root+"/")[1]
         if base in self.rss_root:
             return
@@ -38,10 +48,10 @@ class RSSOperations(Operations):
         if not os.access(path, mode):
             raise FuseOSError(errno.EACCES)
 
-    def open(self, path, fh):
+    def open(self, path: str, fh: Any) -> int:
         return 0
 
-    def getattr(self, path, fh=None):
+    def getattr(self, path: str, fh: Optional[Any] = None) -> Dict[str, Any]:
         base = path.split(self.root+"/")[1]
         is_feed = False
         is_root = False
@@ -74,7 +84,7 @@ class RSSOperations(Operations):
             stat["st_size"] = len(content.encode("utf-8"))
         return stat
 
-    def read(self, path, size, offset, fh):
+    def read(self, path: str, size: int, offset: int, fh: Any) -> bytes:
         base = path.split(self.root+"/")[1]
         is_feed = False
         if base.split("/")[0] in self.rss.rss_feeds.keys():
@@ -92,7 +102,7 @@ class RSSOperations(Operations):
             f.close()
             return buf
 
-    def readdir(self, path, fh):
+    def readdir(self, path: str, fh: Any) -> List[str]:
         base = path.split(self.root+"/")[1]
         if base == "":
             return [".", ".."] + self.rss_root
@@ -102,7 +112,7 @@ class RSSOperations(Operations):
 
     readlink = os.readlink
 
-    def statfs(self, path):
+    def statfs(self, path: str) -> Dict[str, Any]:
         stv = os.statvfs(path)
         stat = dict((
             key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
@@ -112,11 +122,11 @@ class RSSOperations(Operations):
                                                 'f_frsize', 'f_namemax'))
         return stat
 
-    def symlink(self, target, source):
-        return os.symlink(source, target)
+    def symlink(self, target: str, source: str) -> None:
+        os.symlink(source, target)
 
-    def link(self, target, source):
-        return os.link(source, target)
+    def link(self, target: str, source: str) -> None:
+        os.link(source, target)
 
     # Disable unused operations:
     flush = None

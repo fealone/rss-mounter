@@ -14,7 +14,7 @@ class RSS(object):
         self.load_feeds()
 
     def reload(self) -> None:
-        self.rss_config = yaml.load(open(self.rss_config), Loader=yaml.BaseLoader)
+        self.rss_config = yaml.load(open(self.rss_config_path), Loader=yaml.BaseLoader)
         self.load_feeds()
 
     def load_feeds(self) -> None:
